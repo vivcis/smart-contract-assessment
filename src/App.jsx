@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import abi from "./abi.json";
@@ -11,7 +8,7 @@ const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS ;
 //const contractAddress = "0x8802Ab90dF807bC18BBc007B953aC9150E88F51f";
 
 const App = () => {
-  const [account, setAccount] = useState(null);
+  const [account, setAccount] = useState("");
   const [balance, setBalance] = useState("0");
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -30,7 +27,7 @@ const App = () => {
       return;
     }
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    setAccount(accounts[0]);
+    setAccount(accounts[0] || "");
   }
 
   function getContract(signerOrProvider) {
@@ -101,7 +98,8 @@ const App = () => {
 
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
 
-      <p>Connected Wallet: {account ? account : "Not Connected"}</p>
+      <p>Connected Wallet: {account ? account.toString() : "Not Connected"}</p>
+
       <button onClick={requestAccounts} disabled={account}>
         {account ? "Wallet Connected" : "Connect Wallet"}
       </button>
