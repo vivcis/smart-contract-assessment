@@ -3,13 +3,13 @@ import { ethers } from "ethers";
 import abi from "./abi.json";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "./App.css"; 
 
-const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS ;
-//const contractAddress = "0x8802Ab90dF807bC18BBc007B953aC9150E88F51f";
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 
 const App = () => {
   const [account, setAccount] = useState("");
-  const [balance, setBalance] = useState("0");
+  const [balance, setBalance] = useState(null);
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
@@ -18,7 +18,6 @@ const App = () => {
   }, []);
 
   const showSuccess = (message) => toast.success(message);
-
   const showError = (message) => toast.error(message);
 
   async function requestAccounts() {
@@ -26,8 +25,22 @@ const App = () => {
       showError("MetaMask is required to use this app.");
       return;
     }
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    setAccount(accounts[0] || "");
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      if (accounts && accounts[0]) {
+        setAccount(accounts[0].toString());
+        fetchBalance();
+        showSuccess("Wallet connected successfully!");
+      }
+    } catch (error) {
+      showError("Failed to connect wallet.");
+    }
+  }
+
+  function disconnectWallet() {
+    setAccount("");
+    setBalance(null);
+    showSuccess("Wallet disconnected.");
   }
 
   function getContract(signerOrProvider) {
@@ -36,11 +49,19 @@ const App = () => {
 
   async function checkWalletConnection() {
     if (window.ethereum) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.listAccounts();
-      if (accounts.length > 0) {
-        setAccount(accounts[0]);
-        fetchBalance();
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.listAccounts();
+
+        if (accounts.length > 0) {
+          setAccount(accounts[0]); 
+          fetchBalance();
+        } else {
+          setAccount("");
+          setBalance(null);
+        }
+      } catch (error) {
+        showError("Failed to check wallet connection.");
       }
     }
   }
@@ -54,7 +75,14 @@ const App = () => {
     setBalance(ethers.formatEther(contractBalance));
   }
 
-  async function deposit() {
+  async function deposit(event) {
+    event.preventDefault();
+
+    if (!depositAmount || isNaN(depositAmount) || Number(depositAmount) <= 0) {
+      showError("Enter a valid deposit amount.");
+      return;
+    }
+
     if (!window.ethereum) return;
 
     try {
@@ -62,7 +90,7 @@ const App = () => {
       const signer = await provider.getSigner();
       const contract = getContract(signer);
 
-      const tx = await contract.deposit(ethers.parseEther(depositAmount), { value: ethers.parseEther(depositAmount) });
+      const tx = await contract.deposit(ethers.parseEther(depositAmount));
       await tx.wait();
       setDepositAmount("");
       fetchBalance();
@@ -72,7 +100,14 @@ const App = () => {
     }
   }
 
-  async function withdraw() {
+  async function withdraw(event) {
+    event.preventDefault();
+
+    if (!withdrawAmount || isNaN(withdrawAmount) || Number(withdrawAmount) <= 0) {
+      showError("Enter a valid withdrawal amount.");
+      return;
+    }
+
     if (!window.ethereum) return;
 
     try {
@@ -88,45 +123,52 @@ const App = () => {
     } catch (error) {
       showError("Withdrawal failed.");
     }
-    console.log("Contract Address:", import.meta.env.VITE_CONTRACT_ADDRESS);
-    console.log(account);
   }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Assessment DApp</h1>
+    <div className="app-container">
+      <h1 className="app-title">EtherBank</h1>
 
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
 
-      <p>Connected Wallet: {account ? account.toString() : "Not Connected"}</p>
+     <p className="wallet-info">
+      Connected Wallet: {typeof account === "string" && account ? account : "Not Connected"}</p>
 
-      <button onClick={requestAccounts} disabled={account}>
-        {account ? "Wallet Connected" : "Connect Wallet"}
-      </button>
+      {account ? (
+        <button className="btn disconnect-btn" onClick={disconnectWallet}>
+          Disconnect Wallet
+        </button>
+      ) : (
+        <button className="btn connect-btn" onClick={requestAccounts}>
+          Connect Wallet
+        </button>
+      )}
 
-      <h2>Balance: {balance} ETH</h2>
+      <h2 className="balance">Balance: {balance} ETH</h2>
 
-      <div>
-        <h3>Deposit</h3>
+      <form className="form" onSubmit={deposit}>
+        <h3 className="form-title">Deposit</h3>
         <input
+          className="input-field"
           type="text"
           placeholder="Amount in ETH"
           value={depositAmount}
           onChange={(e) => setDepositAmount(e.target.value)}
         />
-        <button onClick={deposit}>Deposit</button>
-      </div>
+        <button className="btn submit-btn" type="submit">Deposit</button>
+      </form>
 
-      <div>
-        <h3>Withdraw</h3>
+      <form className="form" onSubmit={withdraw}>
+        <h3 className="form-title">Withdraw</h3>
         <input
+          className="input-field"
           type="text"
           placeholder="Amount in ETH"
           value={withdrawAmount}
           onChange={(e) => setWithdrawAmount(e.target.value)}
         />
-        <button onClick={withdraw}>Withdraw</button>
-      </div>
+        <button className="btn submit-btn" type="submit">Withdraw</button>
+      </form>
     </div>
   );
 };
