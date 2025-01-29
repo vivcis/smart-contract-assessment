@@ -127,7 +127,7 @@ const App = () => {
 
   return (
     <div className="app-container">
-      <h1 className="app-title">EtherBank</h1>
+     <h1 className="app-title">Ether-Bank</h1>
 
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
 
